@@ -14,6 +14,23 @@ type IndexData struct {
 	Relation  string `json:"relation"`
 }
 
+type ArtistsData []struct {
+	Id           int      `json:"id"`
+	Image        string   `json:"image"`
+	Name         string   `json:"name"`
+	Members      []string `json:"members"`
+	CreationDate int      `json:"creationDate"`
+	FirstAlbum   string   `json:"firstAlbum"`
+	Locations    string   `json:"locations"`
+	ConcertDates string   `json:"concertDates"`
+	Relations    string   `json:"relations"`
+}
+
+type AllData struct {
+	IndexData   IndexData
+	ArtistsData ArtistsData
+}
+
 func main() {
 	http.HandleFunc("/", homepage)
 
@@ -23,10 +40,22 @@ func main() {
 func homepage(w http.ResponseWriter, r *http.Request) {
 	page := template.Must(template.ParseFiles("views/homepage.html"))
 
+	// GET index
 	response, _ := http.Get("https://groupietrackers.herokuapp.com/api")
 	data, _ := ioutil.ReadAll(response.Body)
-	var object IndexData
-	json.Unmarshal(data, &object)
+	var indexData IndexData
+	json.Unmarshal(data, &indexData)
 
-	page.Execute(w, object)
+	// GET artists
+	response, _ = http.Get(indexData.Artists)
+	data, _ = ioutil.ReadAll(response.Body)
+	var artistsData ArtistsData
+	json.Unmarshal(data, &artistsData)
+
+	allData := AllData{
+		IndexData:   indexData,
+		ArtistsData: artistsData,
+	}
+
+	page.Execute(w, allData)
 }
