@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -35,25 +34,16 @@ type Relation struct {
 	DatesLocations map[string][]string `json:"datesLocations"`
 }
 
-type ArtistAndRelation struct {
-	Artist   Artist
-	Relation Relation
-}
-
-type AllData struct {
-	URLs    URLs
-	Artists []Artist
-}
+// Router pour intercepter toutes les requêtes HTTP
 
 func router(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("URL requested:", r.URL.Path)
 	parts := strings.Split(r.URL.Path, "/")
-	// parts[0] // ""
-	// parts[1] // artist
-	// parts[2] // :id
 
 	switch parts[1] {
 	// /artist/:id
+	// parts[0] => ""
+	// parts[1] => artist
+	// parts[2] => :id
 	case "artist":
 		artist(w, parts[2])
 
@@ -61,6 +51,8 @@ func router(w http.ResponseWriter, r *http.Request) {
 		homepage(w, r)
 	}
 }
+
+// Route par défault
 
 func homepage(w http.ResponseWriter, r *http.Request) {
 	page := template.Must(template.ParseFiles("views/homepage.html"))
@@ -77,13 +69,16 @@ func homepage(w http.ResponseWriter, r *http.Request) {
 	var artists []Artist
 	json.Unmarshal(data, &artists)
 
-	allData := AllData{
-		URLs:    urls,
-		Artists: artists,
+	// Regroupement des données dans un map
+	m := map[string]interface{}{
+		"URLs":    urls,
+		"Artists": artists,
 	}
 
-	page.Execute(w, allData)
+	page.Execute(w, m)
 }
+
+// Route /artist/:id
 
 func artist(w http.ResponseWriter, id string) {
 	page := template.Must(template.ParseFiles("views/artist.html"))
@@ -91,18 +86,23 @@ func artist(w http.ResponseWriter, id string) {
 
 	// GET artist/:id
 	response, _ := http.Get(source)
-	data, _ := ioutil.ReadAll(response.Body)
+	body, _ := ioutil.ReadAll(response.Body)
 	var artist Artist
-	json.Unmarshal(data, &artist)
+	json.Unmarshal(body, &artist)
 
-	// GET relations from current artist
+	// GET relations de l'artist courant
 	responseRelations, _ := http.Get(artist.Relations)
-	dataRelations, _ := ioutil.ReadAll(responseRelations.Body)
+	bodyRelations, _ := ioutil.ReadAll(responseRelations.Body)
 	var relation Relation
-	json.Unmarshal(dataRelations, &relation)
-	var artistAndRelation = ArtistAndRelation{Artist: artist, Relation: relation}
+	json.Unmarshal(bodyRelations, &relation)
 
-	page.Execute(w, artistAndRelation)
+	// Regroupement des données dans un map
+	m := map[string]interface{}{
+		"Artist":   artist,
+		"Relation": relation,
+	}
+
+	page.Execute(w, m)
 }
 
 // Lancement du serveur web
