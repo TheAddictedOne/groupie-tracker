@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -29,9 +30,36 @@ type Artist struct {
 	Relations    string   `json:"relations"`
 }
 
+type Relation struct {
+	Id             int                 `json:"id"`
+	DatesLocations map[string][]string `json:"datesLocations"`
+}
+
+type ArtistAndRelation struct {
+	Artist   Artist
+	Relation Relation
+}
+
 type AllData struct {
 	URLs    URLs
 	Artists []Artist
+}
+
+func router(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("URL requested:", r.URL.Path)
+	parts := strings.Split(r.URL.Path, "/")
+	// parts[0] // ""
+	// parts[1] // artist
+	// parts[2] // :id
+
+	switch parts[1] {
+	// /artist/:id
+	case "artist":
+		artist(w, parts[2])
+
+	default:
+		homepage(w, r)
+	}
 }
 
 func homepage(w http.ResponseWriter, r *http.Request) {
@@ -57,9 +85,8 @@ func homepage(w http.ResponseWriter, r *http.Request) {
 	page.Execute(w, allData)
 }
 
-func artist(w http.ResponseWriter, r *http.Request) {
+func artist(w http.ResponseWriter, id string) {
 	page := template.Must(template.ParseFiles("views/artist.html"))
-	id := r.URL.Query().Get("id") // Parse "?id=""
 	source := strings.Replace("https://groupietrackers.herokuapp.com/api/artists/:id", ":id", id, 1)
 
 	// GET artist/:id
@@ -68,14 +95,20 @@ func artist(w http.ResponseWriter, r *http.Request) {
 	var artist Artist
 	json.Unmarshal(data, &artist)
 
-	page.Execute(w, artist)
+	// GET relations from current artist
+	responseRelations, _ := http.Get(artist.Relations)
+	dataRelations, _ := ioutil.ReadAll(responseRelations.Body)
+	var relation Relation
+	json.Unmarshal(dataRelations, &relation)
+	var artistAndRelation = ArtistAndRelation{Artist: artist, Relation: relation}
+
+	page.Execute(w, artistAndRelation)
 }
 
 // Lancement du serveur web
 
 func main() {
-	http.HandleFunc("/", homepage)
-	http.HandleFunc("/artist", artist)
+	http.HandleFunc("/", router)
 
 	http.ListenAndServe(":8080", nil)
 }

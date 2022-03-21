@@ -30,8 +30,18 @@
   </head>
   <body>
     <a href="/">Précédent</a>
-    <h1>{{.Name}}</h1>
-    <div class="date">{{.CreationDate}}</div>
-    <img src="{{.Image}}" />
+    <h1>{{.Artist.Name}}</h1>
+    <div class="date">{{.Artist.CreationDate}}</div>
+    <img src="{{.Artist.Image}}" />
+    {{range $key, $values := .Relation.DatesLocations}}
+      <div>
+        <h1>{{$key}}</h1>
+        <ul>
+          {{range $values}}
+          <li>{{.}}</li>
+          {{end}}
+        </ul>
+      </div>
+    {{end}}
   </body>
 </html>

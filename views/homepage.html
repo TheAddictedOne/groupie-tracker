@@ -33,7 +33,7 @@
     <h2>Artists</h2>
     <div class="bands">
       {{range .Artists}}
-        <a href="/artist?id={{.Id}}">
+        <a href="/artist/{{.Id}}">
           <img src="{{.Image}}" />
         </a>
       {{end}}
